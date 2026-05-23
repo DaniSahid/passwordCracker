@@ -1,0 +1,8 @@
+password,strength,cracked,found_as,method,attempts,time_seconds,attempts_per_sec
+abc,Very Weak,True,abc,Dictionary (direct match),1,0.0,1
+daniel,Very Weak,True,daniel,Dictionary (direct match),1,0.0,1
+danielsahid,Weak,False,N/A,"Brute Force (a-z, max 6 chars)",321272406,207.0603,1551589
+123456,Very Weak,True,123456,Dictionary (direct match),1,0.0,1
+password123,Medium,True,password123,Dictionary (direct match),1,0.0,1
+Malaysia2024,Strong,True,Malaysia2024,Dictionary (direct match),1,0.0,1
+x9#Lm!qZ2@kP,Strong,False,N/A,"Brute Force (a-z, max 6 chars)",321272406,175.8123,1827360
