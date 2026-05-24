@@ -1,11 +1,3 @@
-"""
-=============================================================
-  PASSWORD CRACKING SIMULATOR
-  CSC662 - Computer Security | Cyber Security Awareness
-  UiTM Faculty of Computer and Mathematical Sciences
-=============================================================
-"""
-
 import streamlit as st
 import time
 import string
