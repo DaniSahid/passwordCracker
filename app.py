@@ -109,7 +109,7 @@ label { color: #4a7a9b !important; font-size: 0.85rem !important; }
 def load_wordlist():
     combined = set()
     loaded = []
-    for filename in ["malaysia_wordlist.txt", "password-wordlist.txt", "Malaysia.txt", "rockyou.txt"]:
+    for filename in ["malaysia_wordlist.txt", "password-wordlist.txt", "Malaysia.txt", "rockyou.txt", "common-students.txt"]:
         if os.path.exists(filename):
             with open(filename, "r", encoding="utf-8", errors="ignore") as f:
                 words = {line.strip() for line in f if line.strip()}
