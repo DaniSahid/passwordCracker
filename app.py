@@ -275,7 +275,7 @@ if "history" not in st.session_state:
 st.markdown("""
 <div class="header">
     <h1>🔐 PASSWORD CRACKING SIMULATOR</h1>
-    <p>CSC662 Cyber Security Awareness — UiTM Faculty of Computer & Mathematical Sciences</p>
+    <p>CSC662 Computer Security - Assignment</p>
     <span class="warn">⚠ EDUCATIONAL USE ONLY</span>
 </div>
 """, unsafe_allow_html=True)
@@ -331,19 +331,6 @@ if password:
     """, unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
-# Quick presets
-st.markdown('<div style="font-family:\'Share Tech Mono\',monospace;color:#4a7a9b;font-size:0.75rem;margin:0.5rem 0 0.3rem;">QUICK TEST PRESETS</div>', unsafe_allow_html=True)
-pcols = st.columns(5)
-for col, p in zip(pcols, ["mai", "taufik", "uitm123", "Malaysia2024", "x9#Lm!qZ2@kP"]):
-    with col:
-        if st.button(p, key=f"preset_{p}"):
-            st.session_state["_pw"] = p
-            st.rerun()
-if "_pw" in st.session_state:
-    password = st.session_state.pop("_pw")
-
-st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 #  SETTINGS
@@ -404,7 +391,7 @@ if st.button("⚡  LAUNCH ATTACK", use_container_width=True):
         st.markdown(f"""
         <div class="gpu-box">
             ⚡ ESTIMATED BRUTE FORCE CRACK TIME ({estimates["combinations"]:,} combinations)<br><br>
-            🖥️  Python / Your Laptop &nbsp;&nbsp;→ <b>{estimates["Python (laptop)"]}</b><br>
+            🖥️  Python &nbsp;&nbsp;→ <b>{estimates["Python (laptop)"]}</b><br>
             🎮  RTX 4090 Gaming GPU &nbsp;&nbsp;&nbsp;→ <b>{estimates["RTX 4090 (GPU)"]}</b><br>
             🖥️  8× GPU Cluster &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <b>{estimates["8x GPU Cluster"]}</b>
         </div>
@@ -488,4 +475,3 @@ if st.session_state.history:
             st.rerun()
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-st.markdown('<div style="text-align:center;font-family:\'Share Tech Mono\',monospace;color:#4a7a9b;font-size:0.72rem;">CSC662 Computer Security — UiTM Faculty of Computer and Mathematical Sciences | Educational Use Only</div>', unsafe_allow_html=True)
