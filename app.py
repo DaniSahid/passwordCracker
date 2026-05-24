@@ -1,7 +1,7 @@
 """
 =============================================================
-  PASSWORD CRACKING SIMULATOR — Interactive Streamlit App
-  CSC662 - Computer Security | Cyber Security Awareness Project
+  PASSWORD CRACKING SIMULATOR
+  CSC662 - Computer Security | Cyber Security Awareness
   UiTM Faculty of Computer and Mathematical Sciences
 =============================================================
 """
@@ -10,167 +10,130 @@ import streamlit as st
 import time
 import string
 import itertools
-import csv
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pandas as pd
 
-# ─────────────────────────────────────────────
-#  PAGE CONFIG
-# ─────────────────────────────────────────────
 st.set_page_config(
     page_title="Password Cracking Simulator",
     page_icon="🔐",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",
 )
 
-# ─────────────────────────────────────────────
-#  CUSTOM CSS — Dark terminal aesthetic
-# ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap');
 
-html, body, [class*="css"] { font-family: 'Rajdhani', sans-serif; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #0a0e1a; color: #c8d8e8; }
+.stApp { background-color: #0a0e1a; }
 
-.stApp { background: #0a0e1a; color: #c8d8e8; }
-
-[data-testid="stSidebar"] {
-    background: #0d1220;
-    border-right: 1px solid #1e3a5f;
+.header {
+    background: linear-gradient(135deg, #0d1220, #0a0e1a);
+    border: 1px solid #1e3a5f; border-radius: 12px;
+    padding: 2rem; text-align: center; margin-bottom: 1.5rem;
 }
-
-.hero-header { font-family: 'Share Tech Mono', monospace; text-align: center; padding: 2rem 0 1rem; }
-.hero-title  { font-size: 2.8rem; color: #00d4ff; text-shadow: 0 0 20px rgba(0,212,255,0.5); margin: 0; letter-spacing: 3px; }
-.hero-sub    { font-size: 1rem; color: #4a7a9b; margin-top: 0.3rem; letter-spacing: 2px; }
-.hero-warning {
-    display: inline-block; background: rgba(255,100,0,0.1);
-    border: 1px solid #ff6400; color: #ff6400;
-    padding: 0.4rem 1.2rem; border-radius: 3px;
-    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
-    letter-spacing: 2px; margin-top: 0.5rem;
+.header h1 { font-family: 'Share Tech Mono', monospace; color: #00d4ff; font-size: 1.9rem; margin: 0; letter-spacing: 2px; }
+.header p  { color: #4a7a9b; margin: 0.4rem 0 0; font-size: 0.85rem; }
+.header .warn {
+    display: inline-block; margin-top: 0.6rem;
+    background: rgba(255,100,0,0.1); border: 1px solid #ff6400;
+    color: #ff6400; padding: 0.2rem 0.8rem; border-radius: 4px;
+    font-size: 0.75rem; font-family: 'Share Tech Mono', monospace;
 }
-
-.terminal-box {
-    background: #050810; border: 1px solid #1e3a5f; border-radius: 6px;
-    padding: 1.5rem; font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9rem; margin: 1rem 0;
-    box-shadow: 0 0 20px rgba(0,212,255,0.05);
+.card {
+    background: #0d1220; border: 1px solid #1e3a5f;
+    border-radius: 10px; padding: 1.2rem 1.5rem; margin: 0.8rem 0;
 }
-.terminal-title {
-    color: #00d4ff; font-size: 0.75rem; letter-spacing: 3px;
-    border-bottom: 1px solid #1e3a5f; padding-bottom: 0.5rem; margin-bottom: 1rem;
+.card-title {
+    font-family: 'Share Tech Mono', monospace; color: #00d4ff;
+    font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 0.8rem;
+    border-bottom: 1px solid #1e3a5f; padding-bottom: 0.4rem;
 }
-.terminal-line      { color: #7ab3d0; margin: 0.2rem 0; }
-.terminal-key       { color: #4a7a9b; }
-.terminal-val       { color: #00d4ff; }
-.terminal-val-crack { color: #ff4444; font-weight: bold; }
-.terminal-val-safe  { color: #00ff88; font-weight: bold; }
-.terminal-val-bf    { color: #ffaa00; font-weight: bold; }
-
-.strength-bar-wrap {
-    background: #111827; border-radius: 4px; height: 12px;
-    margin: 0.5rem 0; overflow: hidden; border: 1px solid #1e3a5f;
-}
-.strength-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
-
 .result-cracked {
-    background: rgba(255,50,50,0.1); border: 2px solid #ff3232; border-radius: 6px;
-    padding: 1.2rem; text-align: center; font-family: 'Share Tech Mono', monospace;
-    font-size: 1.5rem; color: #ff4444; text-shadow: 0 0 15px rgba(255,68,68,0.4);
-    letter-spacing: 3px; animation: pulse-red 1.5s infinite;
+    background: rgba(231,76,60,0.1); border: 2px solid #e74c3c;
+    border-radius: 10px; padding: 1rem; text-align: center;
+    color: #e74c3c; font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem; letter-spacing: 2px; margin: 1rem 0;
 }
-.result-cracked-bf {
-    background: rgba(255,170,0,0.1); border: 2px solid #ffaa00; border-radius: 6px;
-    padding: 1.2rem; text-align: center; font-family: 'Share Tech Mono', monospace;
-    font-size: 1.5rem; color: #ffaa00; text-shadow: 0 0 15px rgba(255,170,0,0.4);
-    letter-spacing: 3px; animation: pulse-orange 1.5s infinite;
+.result-tooslow {
+    background: rgba(255,170,0,0.1); border: 2px solid #ffaa00;
+    border-radius: 10px; padding: 1rem; text-align: center;
+    color: #ffaa00; font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem; letter-spacing: 2px; margin: 1rem 0;
 }
 .result-safe {
-    background: rgba(0,255,136,0.05); border: 2px solid #00ff88; border-radius: 6px;
-    padding: 1.2rem; text-align: center; font-family: 'Share Tech Mono', monospace;
-    font-size: 1.5rem; color: #00ff88; text-shadow: 0 0 15px rgba(0,255,136,0.3);
-    letter-spacing: 3px;
+    background: rgba(46,204,113,0.1); border: 2px solid #2ecc71;
+    border-radius: 10px; padding: 1rem; text-align: center;
+    color: #2ecc71; font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem; letter-spacing: 2px; margin: 1rem 0;
 }
-@keyframes pulse-red    { 0%,100%{box-shadow:0 0 10px rgba(255,50,50,0.3);} 50%{box-shadow:0 0 25px rgba(255,50,50,0.6);} }
-@keyframes pulse-orange { 0%,100%{box-shadow:0 0 10px rgba(255,170,0,0.3);} 50%{box-shadow:0 0 25px rgba(255,170,0,0.6);} }
-
-.tip-card {
-    background: #0d1220; border-left: 3px solid #00d4ff;
-    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem;
-    margin: 0.4rem 0; font-size: 0.95rem;
+.info-row {
+    background: #050810; border-left: 3px solid #00d4ff;
+    border-radius: 0 6px 6px 0; padding: 0.5rem 1rem;
+    margin: 0.35rem 0; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; color: #7ab3d0;
 }
-.scan-line {
-    height: 1px; background: linear-gradient(to right, transparent, #00d4ff, transparent);
-    margin: 1.5rem 0; opacity: 0.4;
+.info-row b   { color: #4a7a9b; }
+.info-val     { color: #00d4ff; }
+.info-crack   { color: #e74c3c; font-weight: bold; }
+.info-warn    { color: #ffaa00; font-weight: bold; }
+.info-safe    { color: #2ecc71; font-weight: bold; }
+.gpu-box {
+    background: rgba(255,170,0,0.07); border: 1px solid #ffaa00;
+    border-radius: 8px; padding: 0.8rem 1rem; margin: 0.5rem 0;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: #ffaa00;
 }
+.strength-wrap { background: #111827; border-radius: 6px; height: 10px; margin: 0.4rem 0 0.8rem; overflow: hidden; }
+.strength-fill { height: 100%; border-radius: 6px; }
+.tip { background: #0d1220; border-left: 3px solid #f39c12; border-radius: 0 6px 6px 0; padding: 0.5rem 1rem; margin: 0.3rem 0; font-size: 0.88rem; color: #c8d8e8; }
+.divider { height: 1px; background: linear-gradient(to right, transparent, #1e3a5f, transparent); margin: 1.2rem 0; }
 
 .stTextInput input {
     background: #050810 !important; color: #00d4ff !important;
-    border: 1px solid #1e3a5f !important;
+    border: 1px solid #1e3a5f !important; border-radius: 6px !important;
     font-family: 'Share Tech Mono', monospace !important;
-    font-size: 1.1rem !important; border-radius: 4px !important;
 }
-.stTextInput input:focus {
-    border-color: #00d4ff !important;
-    box-shadow: 0 0 10px rgba(0,212,255,0.2) !important;
-}
-.stButton button {
+.stTextInput input:focus { border-color: #00d4ff !important; box-shadow: 0 0 8px rgba(0,212,255,0.2) !important; }
+label { color: #4a7a9b !important; font-size: 0.85rem !important; }
+.stButton > button {
     background: linear-gradient(135deg, #0066aa, #0044cc) !important;
     color: white !important; border: 1px solid #00d4ff !important;
-    font-family: 'Share Tech Mono', monospace !important;
-    letter-spacing: 2px !important; font-size: 0.9rem !important;
-    padding: 0.6rem 2rem !important; width: 100% !important;
-    border-radius: 4px !important; transition: all 0.2s !important;
+    border-radius: 6px !important; font-family: 'Share Tech Mono', monospace !important;
+    letter-spacing: 1px !important; width: 100% !important;
 }
-.stButton button:hover {
-    background: linear-gradient(135deg, #0088cc, #0066ee) !important;
-    box-shadow: 0 0 15px rgba(0,212,255,0.3) !important;
-}
-
+.stButton > button:hover { background: linear-gradient(135deg, #0088cc, #0055ee) !important; box-shadow: 0 0 12px rgba(0,212,255,0.3) !important; }
+[data-testid="stSidebar"] { display: none; }
 #MainMenu, footer, header { visibility: hidden; }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a0e1a; }
-::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-#  CORE FUNCTIONS
+#  FUNCTIONS
 # ─────────────────────────────────────────────
 
 @st.cache_data
 def load_wordlist():
     combined = set()
-    wordlist_files = [
-        "malaysia_wordlist.txt",   
-        "password-wordlist.txt", 
-        "Malaysia.txt",  
-        "rockyou.txt",             
-    ]
-    for filename in wordlist_files:
+    loaded = []
+    for filename in ["malaysia_wordlist.txt", "password-wordlist.txt", "Malaysia.txt", "rockyou.txt"]:
         if os.path.exists(filename):
             with open(filename, "r", encoding="utf-8", errors="ignore") as f:
                 words = {line.strip() for line in f if line.strip()}
                 combined.update(words)
-    return list(combined)
+                loaded.append(f"{filename} ({len(words):,})")
+    return list(combined), set(combined), loaded
 
 
 def generate_mutations(word: str) -> list:
-    """Generate realistic password mutations from a base word."""
     mutations = [word, word.lower(), word.upper(), word.capitalize()]
-    for suffix in ["1","12","123","1234","12345","0","01",
-                   "2024","2023","2022","99","00","007"]:
+    for suffix in ["1","12","123","1234","12345","0","01","2024","2023","2022","99","00","007"]:
         mutations.append(word + suffix)
         mutations.append(word.capitalize() + suffix)
-    leet = word.lower().replace("a","@").replace("e","3") \
-                       .replace("i","1").replace("o","0") \
-                       .replace("s","$").replace("t","7")
+    leet = word.lower().replace("a","@").replace("e","3").replace("i","1").replace("o","0").replace("s","$").replace("t","7")
     mutations += [leet, leet.capitalize()]
-    for sym in ["!","@","#",".","_"]:
+    for sym in ["!","@","#","."]:
         mutations += [word + sym, word.capitalize() + sym]
     mutations += [word+"!", word+"@123", word+"123!", "123"+word]
     seen, unique = set(), []
@@ -182,168 +145,122 @@ def generate_mutations(word: str) -> list:
 
 
 def classify_strength(password: str):
-    """Returns (label, percent, color) for the password strength."""
     has_upper  = any(c.isupper() for c in password)
     has_lower  = any(c.islower() for c in password)
     has_digit  = any(c.isdigit() for c in password)
     has_symbol = any(c in string.punctuation for c in password)
     length     = len(password)
     score      = sum([has_upper, has_lower, has_digit, has_symbol])
+    if length < 6:                    return "Very Weak",  "#e74c3c", 10
+    elif score == 1 and length <= 8:  return "Very Weak",  "#e74c3c", 10
+    elif length < 8 or score <= 1:    return "Weak",       "#e67e22", 28
+    elif length < 10 or score == 2:   return "Medium",     "#f39c12", 55
+    elif length >= 12 and score >= 3: return "Strong",     "#2ecc71", 85
+    elif score >= 4 and length >= 10: return "Strong",     "#2ecc71", 80
+    else:                             return "Medium",     "#f39c12", 55
 
-    if length < 6:                        return "Very Weak",  10, "#e74c3c"
-    elif score == 1 and length <= 8:      return "Very Weak",  10, "#e74c3c"
-    elif length < 8 or score <= 1:        return "Weak",       28, "#e67e22"
-    elif length < 10 or score == 2:       return "Medium",     55, "#f1c40f"
-    elif length >= 12 and score >= 3:     return "Strong",     85, "#2ecc71"
-    elif score >= 4 and length >= 10:     return "Strong",     80, "#2ecc71"
-    else:                                 return "Medium",     55, "#f1c40f"
 
+def estimate_crack_time(password: str) -> dict:
+    """Returns estimated crack time at different hardware speeds."""
+    charset = 0
+    if any(c.islower() for c in password): charset += 26
+    if any(c.isupper() for c in password): charset += 26
+    if any(c.isdigit() for c in password): charset += 10
+    if any(c in string.punctuation for c in password): charset += 32
+    combos = charset ** len(password)
 
-def dictionary_attack(target_password: str, words: list, max_attempts: int,
-                       progress_bar, status_text) -> dict:
-    """
-    Phase 1: Direct lookup (O1, instant).
-    Phase 2: Mutation engine on each wordlist word.
-    """
-    attempts, cracked, found_word = 0, False, None
-    start_time = time.perf_counter()
+    def fmt(secs):
+        if secs < 1:           return "< 1 second"
+        elif secs < 60:        return f"{secs:.1f} seconds"
+        elif secs < 3600:      return f"{secs/60:.1f} minutes"
+        elif secs < 86400:     return f"{secs/3600:.1f} hours"
+        elif secs < 31536000:  return f"{secs/86400:.0f} days"
+        else:                  return f"{secs/31536000:.1f} years"
 
-    # ── Phase 1: Direct lookup ──
-    wordlist_set = set(words)
-    if target_password in wordlist_set:
-        elapsed = time.perf_counter() - start_time
-        progress_bar.progress(1.0)
-        return {
-            "cracked": True, "found_as": target_password,
-            "attempts": 1, "time_seconds": round(elapsed, 4),
-            "attempts_per_sec": 1, "method": "Dictionary (direct match)",
-        }
-
-    # ── Phase 2: Mutation engine ──
-    total_est = len(words) * 30
-    for word in words:
-        for mutated in generate_mutations(word):
-            attempts += 1
-            if mutated == target_password:
-                cracked, found_word = True, mutated
-                break
-            if attempts >= max_attempts:
-                break
-            if attempts % 500 == 0:
-                pct = min(attempts / total_est, 0.99)
-                progress_bar.progress(pct)
-                status_text.markdown(
-                    f'<div class="terminal-line">[DICT] {attempts:,} attempts — '
-                    f'<span style="color:#00d4ff">{mutated[:30]}</span></div>',
-                    unsafe_allow_html=True
-                )
-        if cracked or attempts >= max_attempts:
-            break
-
-    elapsed = time.perf_counter() - start_time
-    progress_bar.progress(1.0)
     return {
-        "cracked"         : cracked,
-        "found_as"        : found_word if cracked else "N/A",
-        "attempts"        : attempts,
-        "time_seconds"    : round(elapsed, 4),
-        "attempts_per_sec": round(attempts / elapsed) if elapsed > 0 else 0,
-        "method"          : "Dictionary + Mutations",
+        "combinations"    : combos,
+        "Python (laptop)" : fmt(combos / 1_000_000),
+        "RTX 4090 (GPU)"  : fmt(combos / 164_000_000_000),
+        "8x GPU Cluster"  : fmt(combos / 1_000_000_000_000),
     }
 
 
-def brute_force_attack(target_password: str, max_length: int,
-                        progress_bar, status_text) -> dict:
+# BF_DEMO_LIMIT: max attempts before we give up and show estimate instead
+BF_DEMO_LIMIT = 3_000_000   # ~3 seconds in Python — good for live demo
+
+def run_attack(target, words, wset, mode, max_dict, bf_length):
     """
-    Generates every possible combination of characters up to max_length.
-    Will always crack the password if length <= max_length.
+    Returns result dict. If brute force would take too long,
+    sets 'too_slow': True and includes time estimates instead.
     """
-    # lowercase only for speed — shows the concept clearly
-    charset    = string.ascii_lowercase
-    attempts   = 0
-    cracked    = False
-    found_word = None
-    start_time = time.perf_counter()
+    attempts = 0
+    start    = time.perf_counter()
 
-    # Total combinations for progress estimate
-    total_est = sum(len(charset) ** l for l in range(1, max_length + 1))
+    # ── Phase 1: Dictionary ──
+    if mode in ["Dictionary Attack", "Dictionary → then Brute Force"]:
+        if target in wset:
+            elapsed = time.perf_counter() - start
+            return {"cracked": True, "found_as": target, "attempts": 1,
+                    "time_seconds": round(elapsed, 4), "method": "Dictionary (direct match)",
+                    "too_slow": False}
 
-    for length in range(1, max_length + 1):
-        status_text.markdown(
-            f'<div class="terminal-line">[BRUTE] Trying length <span style="color:#ffaa00">{length}</span> '
-            f'— {len(charset)**length:,} combinations...</div>',
-            unsafe_allow_html=True
-        )
-        for combo in itertools.product(charset, repeat=length):
-            attempts += 1
-            guess = "".join(combo)
-
-            if guess == target_password:
-                cracked, found_word = True, guess
+        for word in words:
+            for mutated in generate_mutations(word):
+                attempts += 1
+                if mutated == target:
+                    elapsed = time.perf_counter() - start
+                    return {"cracked": True, "found_as": mutated, "attempts": attempts,
+                            "time_seconds": round(elapsed, 4), "method": "Dictionary + Mutations",
+                            "too_slow": False}
+                if attempts >= max_dict:
+                    break
+            if attempts >= max_dict:
                 break
 
-            if attempts % 50000 == 0:
-                pct = min(attempts / total_est, 0.99)
-                progress_bar.progress(pct)
-                status_text.markdown(
-                    f'<div class="terminal-line">[BRUTE] {attempts:,} attempts — '
-                    f'<span style="color:#ffaa00">{guess}</span></div>',
-                    unsafe_allow_html=True
-                )
+    # ── Phase 2: Brute Force ──
+    if mode in ["Brute Force Attack", "Dictionary → then Brute Force"]:
 
-        if cracked:
-            break
+        # Check first: is the password all-lowercase only?
+        # If it has uppercase/digits/symbols, pure a-z BF won't find it
+        is_lowercase_only = all(c.islower() for c in target)
 
-    elapsed = time.perf_counter() - start_time
-    progress_bar.progress(1.0)
-    return {
-        "cracked"         : cracked,
-        "found_as"        : found_word if cracked else "N/A",
-        "attempts"        : attempts,
-        "time_seconds"    : round(elapsed, 4),
-        "attempts_per_sec": round(attempts / elapsed) if elapsed > 0 else 0,
-        "method"          : f"Brute Force (up to {max_length} chars, a-z only)",
-    }
+        # Estimate how many combos needed for this password length
+        total_combos = sum(26 ** l for l in range(1, len(target) + 1))
 
+        # If it would take too long, skip and show estimate instead
+        if total_combos > BF_DEMO_LIMIT or not is_lowercase_only:
+            elapsed = time.perf_counter() - start
+            estimates = estimate_crack_time(target)
+            return {
+                "cracked"     : False,
+                "found_as"    : "N/A",
+                "attempts"    : attempts,
+                "time_seconds": round(elapsed, 4),
+                "method"      : "Brute Force (exceeded demo limit)",
+                "too_slow"    : True,
+                "estimates"   : estimates,
+            }
 
-def make_chart(history):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    fig.patch.set_facecolor("#0a0e1a")
+        # Actually brute force it (only runs if fast enough)
+        charset  = string.ascii_lowercase
+        bf_att   = 0
+        bf_start = time.perf_counter()
+        for length in range(1, len(target) + 1):
+            for combo in itertools.product(charset, repeat=length):
+                bf_att += 1
+                guess = "".join(combo)
+                if guess == target:
+                    elapsed = time.perf_counter() - bf_start
+                    return {"cracked": True, "found_as": guess,
+                            "attempts": attempts + bf_att,
+                            "time_seconds": round(elapsed, 4),
+                            "method": f"Brute Force (a-z, {len(target)} chars)",
+                            "too_slow": False}
 
-    labels  = [r["password"][:12] for r in history]
-    times   = [r["time_seconds"] for r in history]
-    attmpts = [r["attempts"] for r in history]
-    colors  = []
-    for r in history:
-        if not r["cracked"]:        colors.append("#00ff88")
-        elif "Brute" in r.get("method",""):  colors.append("#ffaa00")
-        else:                        colors.append("#ff4444")
-
-    for ax in axes:
-        ax.set_facecolor("#050810")
-        ax.tick_params(colors="#4a7a9b", labelsize=8)
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#1e3a5f")
-
-    axes[0].bar(labels, times, color=colors, edgecolor="#1e3a5f", linewidth=0.8)
-    axes[0].set_title("Time to Crack (seconds)", color="#00d4ff", fontsize=10, pad=10)
-    axes[0].set_ylabel("Seconds", color="#4a7a9b", fontsize=8)
-    axes[0].tick_params(axis="x", rotation=20)
-
-    axes[1].bar(labels, attmpts, color=colors, edgecolor="#1e3a5f", linewidth=0.8)
-    axes[1].set_title("Number of Attempts", color="#00d4ff", fontsize=10, pad=10)
-    axes[1].set_ylabel("Attempts", color="#4a7a9b", fontsize=8)
-    axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x):,}"))
-    axes[1].tick_params(axis="x", rotation=20)
-
-    legend = [
-        mpatches.Patch(color="#ff4444", label="Cracked (Dictionary)"),
-        mpatches.Patch(color="#ffaa00", label="Cracked (Brute Force)"),
-        mpatches.Patch(color="#00ff88", label="Not Cracked"),
-    ]
-    fig.legend(handles=legend, loc="upper right", framealpha=0, labelcolor="white", fontsize=8)
-    plt.tight_layout(pad=2)
-    return fig
+    elapsed = time.perf_counter() - start
+    return {"cracked": False, "found_as": "N/A", "attempts": attempts,
+            "time_seconds": round(elapsed, 4), "method": mode,
+            "too_slow": False}
 
 
 # ─────────────────────────────────────────────
@@ -352,325 +269,223 @@ def make_chart(history):
 if "history" not in st.session_state:
     st.session_state.history = []
 
-
 # ─────────────────────────────────────────────
-#  SIDEBAR
-# ─────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid #1e3a5f;">
-    ⚙ SETTINGS
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    show_password = st.checkbox("Show password while typing", value=False)
-
-    attack_mode = st.radio(
-        "Attack Mode",
-        ["Dictionary Only", "Brute Force Only", "Dictionary → then Brute Force"],
-        index=2,
-        help="Dictionary = wordlist based | Brute Force = tries every combination"
-    )
-
-    max_cap = st.slider(
-        "Dictionary max attempts", 1000, 500_000, 100_000, step=1000,
-        help="Only applies to Dictionary attack"
-    )
-
-    bf_length = st.slider(
-        "Brute Force max length", 1, 8, 6, step=1,
-        help="Max character length to try. WARNING: 7+ chars takes very long!"
-    )
-
-    st.markdown("<div class='scan-line'></div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div style="font-family:'Share Tech Mono',monospace;color:#4a7a9b;font-size:0.75rem;line-height:1.8;">
-    <b style="color:#00d4ff;">BRUTE FORCE ESTIMATE</b><br>
-    a-z only (26 chars)<br>
-    26^{bf_length} = {26**bf_length:,} combos<br>
-    Up to {bf_length} chars
-    </div>
-    """, unsafe_allow_html=True)
-
-
-
-# ─────────────────────────────────────────────
-#  HERO HEADER
+#  HEADER
 # ─────────────────────────────────────────────
 st.markdown("""
-<div class="hero-header">
-    <div class="hero-title">PASSWORD CRACKING SIMULATOR</div>
-    <div class="hero-sub">DICTIONARY ATTACK + BRUTE FORCE DEMONSTRATION</div>
-    <div class="hero-warning">⚠ EDUCATIONAL USE ONLY - CSC662 COMPUTER SECURITY</div>
+<div class="header">
+    <h1>🔐 PASSWORD CRACKING SIMULATOR</h1>
+    <p>CSC662 Cyber Security Awareness — UiTM Faculty of Computer & Mathematical Sciences</p>
+    <span class="warn">⚠ EDUCATIONAL USE ONLY</span>
 </div>
-<div class="scan-line"></div>
 """, unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────
+#  LOAD WORDLIST
+# ─────────────────────────────────────────────
+words, wset, loaded_files = load_wordlist()
+st.markdown(f"""
+<div class="info-row">
+    <b>WORDLIST</b> &nbsp;→&nbsp;
+    <span class="info-val">{len(words):,} words loaded</span>
+    &nbsp;|&nbsp; {" + ".join(loaded_files) if loaded_files else "No wordlist files found in folder"}
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-#  MAIN LAYOUT
+#  INPUT
 # ─────────────────────────────────────────────
-col_left, col_right = st.columns([1, 1], gap="large")
+st.markdown('<div class="card"><div class="card-title">// TARGET PASSWORD</div>', unsafe_allow_html=True)
 
-with col_left:
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.85rem;margin-bottom:0.8rem;">
-    [ TARGET PASSWORD INPUT ]
+show_pw  = st.checkbox("Show password while typing", value=False)
+password = st.text_input(
+    "Password:", type="default" if show_pw else "password",
+    placeholder="Type any password to test...",
+    label_visibility="collapsed",
+)
+
+if password:
+    label, color, pct = classify_strength(password)
+    has_u = any(c.isupper() for c in password)
+    has_l = any(c.islower() for c in password)
+    has_d = any(c.isdigit() for c in password)
+    has_s = any(c in string.punctuation for c in password)
+    n     = len(password)
+    st.markdown(f"""
+    <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:0.8rem;margin-top:0.5rem;">
+        <span style="color:#4a7a9b;">STRENGTH</span>
+        <span style="color:{color};font-weight:bold;">{label.upper()}</span>
+    </div>
+    <div class="strength-wrap">
+        <div class="strength-fill" style="width:{pct}%;background:{color};"></div>
+    </div>
+    <div style="display:flex;gap:1rem;font-family:'Share Tech Mono',monospace;font-size:0.78rem;flex-wrap:wrap;">
+        <span style="color:{'#2ecc71' if n>=8 else '#e74c3c'}">{'✓' if n>=8 else '✗'} {n} chars</span>
+        <span style="color:{'#2ecc71' if has_u else '#e74c3c'}">{'✓' if has_u else '✗'} UPPER</span>
+        <span style="color:{'#2ecc71' if has_l else '#e74c3c'}">{'✓' if has_l else '✗'} lower</span>
+        <span style="color:{'#2ecc71' if has_d else '#e74c3c'}">{'✓' if has_d else '✗'} 123</span>
+        <span style="color:{'#2ecc71' if has_s else '#e74c3c'}">{'✓' if has_s else '✗'} @#!</span>
     </div>
     """, unsafe_allow_html=True)
 
-    input_type = "default" if show_password else "password"
-    password   = st.text_input(
-        label="Enter a password to test:",
-        type=input_type,
-        placeholder="e.g. daniel  |  password123  |  x9#Lm!qZ2@kP",
-        label_visibility="collapsed",
-        key="password_input"
-    )
+st.markdown('</div>', unsafe_allow_html=True)
 
-    # Live strength meter
-    if password:
-        strength, pct, color = classify_strength(password)
-        chars     = len(password)
-        has_upper = any(c.isupper() for c in password)
-        has_lower = any(c.islower() for c in password)
-        has_digit = any(c.isdigit() for c in password)
-        has_sym   = any(c in string.punctuation for c in password)
+# Quick presets
+st.markdown('<div style="font-family:\'Share Tech Mono\',monospace;color:#4a7a9b;font-size:0.75rem;margin:0.5rem 0 0.3rem;">QUICK TEST PRESETS</div>', unsafe_allow_html=True)
+pcols = st.columns(5)
+for col, p in zip(pcols, ["mai", "taufik", "uitm123", "Malaysia2024", "x9#Lm!qZ2@kP"]):
+    with col:
+        if st.button(p, key=f"preset_{p}"):
+            st.session_state["_pw"] = p
+            st.rerun()
+if "_pw" in st.session_state:
+    password = st.session_state.pop("_pw")
 
-        st.markdown(f"""
-        <div style="margin:0.5rem 0 1rem;">
-            <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:0.8rem;margin-bottom:0.3rem;">
-                <span style="color:#4a7a9b;">STRENGTH</span>
-                <span style="color:{color};font-weight:bold;">{strength.upper()}</span>
-            </div>
-            <div class="strength-bar-wrap">
-                <div class="strength-bar" style="width:{pct}%;background:{color};"></div>
-            </div>
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
-                <span style="font-size:0.75rem;color:{'#00ff88' if chars>=8 else '#ff4444'};font-family:'Share Tech Mono',monospace;">
-                    {'✓' if chars>=8 else '✗'} {chars} chars
-                </span>
-                <span style="font-size:0.75rem;color:{'#00ff88' if has_upper else '#ff4444'};font-family:'Share Tech Mono',monospace;">
-                    {'✓' if has_upper else '✗'} UPPER
-                </span>
-                <span style="font-size:0.75rem;color:{'#00ff88' if has_lower else '#ff4444'};font-family:'Share Tech Mono',monospace;">
-                    {'✓' if has_lower else '✗'} lower
-                </span>
-                <span style="font-size:0.75rem;color:{'#00ff88' if has_digit else '#ff4444'};font-family:'Share Tech Mono',monospace;">
-                    {'✓' if has_digit else '✗'} 123
-                </span>
-                <span style="font-size:0.75rem;color:{'#00ff88' if has_sym else '#ff4444'};font-family:'Share Tech Mono',monospace;">
-                    {'✓' if has_sym else '✗'} @#!
-                </span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+#  SETTINGS
+# ─────────────────────────────────────────────
+st.markdown('<div class="card"><div class="card-title">// ATTACK SETTINGS</div>', unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    attack_mode = st.selectbox("Attack Mode", [
+        "Dictionary → then Brute Force",
+        "Dictionary Attack",
+        "Brute Force Attack",
+    ])
+with col2:
+    max_cap = st.slider("Dictionary Max Attempts", 10_000, 500_000, 100_000, step=10_000)
+st.markdown("""
+<div style="font-family:'Share Tech Mono',monospace;color:#4a7a9b;font-size:0.78rem;margin-top:0.5rem;">
+ℹ️  Brute Force automatically handles passwords up to ~6 lowercase chars in demo time.
+Longer passwords will show estimated crack time on real hardware instead.
+</div>
+""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+#  LAUNCH
+# ─────────────────────────────────────────────
+if st.button("⚡  LAUNCH ATTACK", use_container_width=True):
+    if not password:
+        st.warning("Please enter a password first.")
     else:
-        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        with st.spinner("Attacking..."):
+            result = run_attack(password, words, wset, attack_mode, max_cap, bf_length=7)
 
-    run_btn = st.button("⚡ LAUNCH ATTACK", key="run")
-
-    # Quick presets
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#4a7a9b;font-size:0.75rem;letter-spacing:1px;margin-top:1rem;margin-bottom:0.4rem;">
-    QUICK TEST PRESETS
-    </div>
-    """, unsafe_allow_html=True)
-
-
-    st.markdown("<div class='scan-line'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.8rem;margin-bottom:0.6rem;">
-    💡 SECURITY TIPS
-    </div>
-    <div class="tip-card">Use at least <b>12 characters</b> — length is your best defence</div>
-    <div class="tip-card">Mix <b>UPPER, lower, numbers & symbols</b></div>
-    <div class="tip-card">Try a <b>passphrase</b>: <code>PurpleTiger$RunsFast!</code></div>
-    <div class="tip-card">Never use <b>real words or names</b> alone</div>
-    <div class="tip-card">Enable <b>Multi-Factor Authentication (MFA)</b></div>
-    <div class="tip-card">Use a <b>Password Manager</b> — never reuse passwords</div>
-    """, unsafe_allow_html=True)
-
-
-with col_right:
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.85rem;margin-bottom:0.8rem;">
-    [ ATTACK CONSOLE ]
-    </div>
-    """, unsafe_allow_html=True)
-
-    console_placeholder = st.empty()
-    result_placeholder  = st.empty()
-
-    if run_btn and password:
-        words = load_wordlist()
-
-        # ── Show init box ──
-        console_placeholder.markdown(f"""
-        <div class="terminal-box">
-            <div class="terminal-title">// ATTACK INITIALIZING</div>
-            <div class="terminal-line"><span class="terminal-key">TARGET     </span> : <span class="terminal-val">{'*' * len(password)} ({len(password)} chars)</span></div>
-            <div class="terminal-line"><span class="terminal-key">MODE       </span> : <span class="terminal-val">{attack_mode}</span></div>
-            <div class="terminal-line"><span class="terminal-key">WORDLIST   </span> : <span class="terminal-val">{len(words):,} words loaded</span></div>
-            <div class="terminal-line"><span class="terminal-key">DICT CAP   </span> : <span class="terminal-val">{max_cap:,} attempts</span></div>
-            <div class="terminal-line"><span class="terminal-key">BF LENGTH  </span> : <span class="terminal-val">up to {bf_length} chars (a-z)</span></div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        prog_bar   = st.progress(0)
-        status_txt = st.empty()
-        result     = None
-        method_used = ""
-
-        # ── Dictionary Only ──
-        if attack_mode == "Dictionary Only":
-            result = dictionary_attack(password, words, max_cap, prog_bar, status_txt)
-            method_used = result["method"]
-
-        # ── Brute Force Only ──
-        elif attack_mode == "Brute Force Only":
-            result = brute_force_attack(password, bf_length, prog_bar, status_txt)
-            method_used = result["method"]
-
-        # ── Combined: Dictionary → then Brute Force ──
-        elif attack_mode == "Dictionary → then Brute Force":
-            status_txt.markdown(
-                '<div class="terminal-line" style="color:#00d4ff;">[PHASE 1] Running dictionary attack...</div>',
-                unsafe_allow_html=True
-            )
-            result = dictionary_attack(password, words, max_cap, prog_bar, status_txt)
-            method_used = result["method"]
-
-            if not result["cracked"]:
-                status_txt.markdown(
-                    f'<div class="terminal-line" style="color:#ffaa00;">[PHASE 2] Not in wordlist — switching to brute force (up to {bf_length} chars)...</div>',
-                    unsafe_allow_html=True
-                )
-                prog_bar.progress(0)
-                bf_result   = brute_force_attack(password, bf_length, prog_bar, status_txt)
-                method_used = bf_result["method"]
-                if bf_result["cracked"]:
-                    result = bf_result
-
-        status_txt.empty()
-        prog_bar.empty()
-
-        strength, pct, color = classify_strength(password)
-        is_bf = "Brute" in method_used
+        label, color, pct = classify_strength(password)
 
         # ── Result banner ──
-        if result["cracked"] and is_bf:
-            result_placeholder.markdown(
-                '<div class="result-cracked-bf">⚡ PASSWORD CRACKED — BRUTE FORCE ⚡</div>',
-                unsafe_allow_html=True
-            )
-        elif result["cracked"]:
-            result_placeholder.markdown(
-                '<div class="result-cracked">⚠ PASSWORD CRACKED — DICTIONARY ⚠</div>',
-                unsafe_allow_html=True
-            )
+        if result["cracked"]:
+            st.markdown('<div class="result-cracked">⚠️  PASSWORD CRACKED</div>', unsafe_allow_html=True)
+        elif result.get("too_slow"):
+            st.markdown('<div class="result-tooslow">⏱️  TOO SLOW FOR DEMO — SEE GPU ESTIMATE BELOW</div>', unsafe_allow_html=True)
         else:
-            result_placeholder.markdown(
-                '<div class="result-safe">✓ PASSWORD HELD — NOT CRACKED</div>',
-                unsafe_allow_html=True
-            )
+            st.markdown('<div class="result-safe">✅  PASSWORD NOT CRACKED</div>', unsafe_allow_html=True)
 
-        # ── Terminal result ──
-        val_class = "terminal-val-crack" if result["cracked"] and not is_bf else \
-                    "terminal-val-bf"    if result["cracked"] and is_bf else \
-                    "terminal-val-safe"
-        status_str = "CRACKED ⚠" if result["cracked"] else "NOT CRACKED ✓"
+        # ── Details ──
+        vc = "info-crack" if result["cracked"] else "info-warn" if result.get("too_slow") else "info-safe"
+        status_str = "CRACKED ⚠️" if result["cracked"] else "DEMO LIMIT REACHED ⏱️" if result.get("too_slow") else "NOT CRACKED ✅"
 
-        console_placeholder.markdown(f"""
-        <div class="terminal-box">
-            <div class="terminal-title">// ATTACK COMPLETE — RESULTS</div>
-            <div class="terminal-line"><span class="terminal-key">STATUS     </span> : <span class="{val_class}">{status_str}</span></div>
-            <div class="terminal-line"><span class="terminal-key">METHOD     </span> : <span class="terminal-val">{method_used}</span></div>
-            <div class="terminal-line"><span class="terminal-key">PASSWORD   </span> : <span class="terminal-val">{'*' * len(password)}</span></div>
-            {'<div class="terminal-line"><span class="terminal-key">FOUND AS   </span> : <span class="' + val_class + '">' + result["found_as"] + '</span></div>' if result["cracked"] else ''}
-            <div class="terminal-line"><span class="terminal-key">STRENGTH   </span> : <span style="color:{color};">{strength.upper()}</span></div>
-            <div class="terminal-line"><span class="terminal-key">ATTEMPTS   </span> : <span class="terminal-val">{result['attempts']:,}</span></div>
-            <div class="terminal-line"><span class="terminal-key">TIME TAKEN </span> : <span class="terminal-val">{result['time_seconds']} seconds</span></div>
-            <div class="terminal-line"><span class="terminal-key">SPEED      </span> : <span class="terminal-val">{result['attempts_per_sec']:,} attempts/sec</span></div>
+        st.markdown(f"""
+        <div class="info-row"><b>STATUS  &nbsp;&nbsp;&nbsp;</b> <span class="{vc}">{status_str}</span></div>
+        <div class="info-row"><b>METHOD  &nbsp;&nbsp;&nbsp;</b> <span class="info-val">{result["method"]}</span></div>
+        {"<div class='info-row'><b>FOUND AS &nbsp;</b> <span class='info-crack'>" + result["found_as"] + "</span></div>" if result["cracked"] else ""}
+        <div class="info-row"><b>STRENGTH &nbsp;</b> <span style="color:{color};font-weight:bold;">{label.upper()}</span></div>
+        <div class="info-row"><b>ATTEMPTS &nbsp;</b> <span class="info-val">{result["attempts"]:,}</span></div>
+        <div class="info-row"><b>TIME &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b> <span class="info-val">{result["time_seconds"]} seconds</span></div>
+        """, unsafe_allow_html=True)
+
+        # ── GPU Estimate box — shows for ALL results ──
+        estimates = result.get("estimates") or estimate_crack_time(password)
+        st.markdown(f"""
+        <div class="gpu-box">
+            ⚡ ESTIMATED BRUTE FORCE CRACK TIME ({estimates["combinations"]:,} combinations)<br><br>
+            🖥️  Python / Your Laptop &nbsp;&nbsp;→ <b>{estimates["Python (laptop)"]}</b><br>
+            🎮  RTX 4090 Gaming GPU &nbsp;&nbsp;&nbsp;→ <b>{estimates["RTX 4090 (GPU)"]}</b><br>
+            🖥️  8× GPU Cluster &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ <b>{estimates["8x GPU Cluster"]}</b>
         </div>
         """, unsafe_allow_html=True)
 
-        # ── Save to history ──
-        st.session_state.history.append({
-            "password"    : password,
-            "strength"    : strength,
-            "cracked"     : result["cracked"],
-            "method"      : method_used,
-            "attempts"    : result["attempts"],
-            "time_seconds": result["time_seconds"],
-        })
+        # Save to history
+        hist_entry = {
+            "Password" : password,
+            "Strength" : label,
+            "Cracked"  : "Yes ⚠️" if result["cracked"] else "No ✅",
+            "Method"   : result["method"],
+            "Attempts" : result["attempts"],
+            "Time (s)" : result["time_seconds"],
+            "GPU (RTX 4090)" : estimates["RTX 4090 (GPU)"],
+        }
+        st.session_state.history.append(hist_entry)
 
-    elif run_btn and not password:
-        console_placeholder.markdown("""
-        <div class="terminal-box">
-            <div class="terminal-title">// ERROR</div>
-            <div class="terminal-line" style="color:#ff4444;">No password entered. Please type a password to test.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    else:
-        console_placeholder.markdown("""
-        <div class="terminal-box">
-            <div class="terminal-title">// AWAITING TARGET</div>
-            <div class="terminal-line">Enter a password on the left and click</div>
-            <div class="terminal-line"><span style="color:#00d4ff;">⚡ LAUNCH ATTACK</span> to begin.</div>
-            <br>
-            <div class="terminal-line" style="color:#4a7a9b;">Suggested demo sequence:</div>
-            <div class="terminal-line">  → <span style="color:#ff4444;">abc</span>           Brute forced instantly</div>
-            <div class="terminal-line">  → <span style="color:#ff4444;">daniel</span>        Brute forced in seconds</div>
-            <div class="terminal-line">  → <span style="color:#ff4444;">123456</span>        In wordlist — instant</div>
-            <div class="terminal-line">  → <span style="color:#f1c40f;">danielsahid</span>   Too long for brute force</div>
-            <div class="terminal-line">  → <span style="color:#2ecc71;">x9#Lm!qZ2@kP</span> Uncrackable</div>
-        </div>
-        """, unsafe_allow_html=True)
-
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-#  SESSION HISTORY & CHARTS
+#  SECURITY TIPS
+# ─────────────────────────────────────────────
+st.markdown('<div class="card"><div class="card-title">// SECURITY TIPS</div>', unsafe_allow_html=True)
+for tip in [
+    "Use at least 12 characters — length is your best defence",
+    "Mix UPPERCASE, lowercase, numbers and symbols",
+    "Use a passphrase: PurpleTiger$RunsFast! is strong and memorable",
+    "Never use your name, IC number, or 'uitm123' as a password",
+    "Enable Multi-Factor Authentication (MFA) on all accounts",
+    "Use a Password Manager — never reuse passwords across sites",
+    "Even a strong password can be stolen in a server breach — MFA is essential",
+]:
+    st.markdown(f'<div class="tip">💡 {tip}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+#  HISTORY & CHARTS
 # ─────────────────────────────────────────────
 if st.session_state.history:
-    st.markdown("<div class='scan-line'></div>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-family:'Share Tech Mono',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.9rem;margin-bottom:1rem;">
-    [ SESSION HISTORY & ANALYSIS ]
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="font-family:\'Share Tech Mono\',monospace;color:#00d4ff;letter-spacing:2px;font-size:0.8rem;">// SESSION HISTORY & ANALYSIS</div>', unsafe_allow_html=True)
 
-    h_col1, h_col2 = st.columns([1, 1], gap="large")
+    df = pd.DataFrame(st.session_state.history)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-    with h_col1:
-        df = pd.DataFrame(st.session_state.history)
-        df["result"] = df["cracked"].map({True: "⚠ CRACKED", False: "✓ SAFE"})
-        df["time_seconds"] = df["time_seconds"].apply(lambda x: f"{x:.4f}s")
-        st.dataframe(
-            df[["password","strength","result","method","attempts","time_seconds"]].rename(columns={
-                "password":"Password","strength":"Strength","result":"Result",
-                "method":"Method","attempts":"Attempts","time_seconds":"Time"
-            }),
-            use_container_width=True,
-            hide_index=True,
-        )
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig.patch.set_facecolor("#0a0e1a")
+    colors = ["#e74c3c" if r["Cracked"] == "Yes ⚠️" else "#2ecc71" for r in st.session_state.history]
+    labels = [r["Password"][:10] for r in st.session_state.history]
 
-        csv_data = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "⬇ Export Results CSV",
-            data=csv_data,
-            file_name="cracking_results.csv",
-            mime="text/csv",
-        )
+    for ax in axes:
+        ax.set_facecolor("#0d1220")
+        ax.tick_params(colors="#4a7a9b", labelsize=8)
+        for spine in ax.spines.values():
+            spine.set_edgecolor("#1e3a5f")
 
-        if st.button("🗑 Clear History"):
+    axes[0].bar(labels, [r["Time (s)"] for r in st.session_state.history], color=colors, edgecolor="#1e3a5f")
+    axes[0].set_title("Time to Crack (seconds)", color="#00d4ff", fontsize=9, pad=8)
+    axes[0].tick_params(axis="x", rotation=20)
+
+    axes[1].bar(labels, [r["Attempts"] for r in st.session_state.history], color=colors, edgecolor="#1e3a5f")
+    axes[1].set_title("Number of Attempts", color="#00d4ff", fontsize=9, pad=8)
+    axes[1].tick_params(axis="x", rotation=20)
+    axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
+    legend = [mpatches.Patch(color="#e74c3c", label="Cracked"),
+              mpatches.Patch(color="#2ecc71", label="Not Cracked")]
+    fig.legend(handles=legend, loc="upper right", framealpha=0, labelcolor="white", fontsize=8)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close()
+
+    c1, c2 = st.columns(2)
+    with c1:
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button("⬇ Export CSV", csv, "results.csv", "text/csv", use_container_width=True)
+    with c2:
+        if st.button("🗑 Clear History", use_container_width=True):
             st.session_state.history = []
             st.rerun()
 
-    with h_col2:
-        fig = make_chart(st.session_state.history)
-        st.pyplot(fig, use_container_width=True)
-        plt.close()
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align:center;font-family:\'Share Tech Mono\',monospace;color:#4a7a9b;font-size:0.72rem;">CSC662 Computer Security — UiTM Faculty of Computer and Mathematical Sciences | Educational Use Only</div>', unsafe_allow_html=True)
